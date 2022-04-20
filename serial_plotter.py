@@ -108,7 +108,7 @@ class Parser:
 
 if __name__ == "__main__":
 
-    ser = None
+    port = None
     baud = 0
 
     if len(sys.argv) != 3:
@@ -126,6 +126,6 @@ if __name__ == "__main__":
 
     print("Port {} baud {}".format(port, baud))
 
-    dev = Parser(ser, baud)
+    dev = Parser(port, baud)
     dev.work()
 
