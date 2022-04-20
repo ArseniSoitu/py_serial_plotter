@@ -8,9 +8,8 @@ from time import sleep
 import sys
 from time import perf_counter
 
-
 class Parser:
-    def __init__(self):
+    def __init__(self, port, baud):
         self.data_manager = mp.Manager()
         self.buf = mp.Queue()
         self.angles = self.data_manager.dict()
@@ -20,13 +19,15 @@ class Parser:
         self.angles[3] = []
         self.angles[4] = []
         self.angles[5] = []
+        self.port = port
+        self.baudrate = baud
         self.parse_task = mp.Process(target=self.process_parse, args=(self.buf, self.angles,))
         self.plot_task = mp.Process(target=self.process_plot, args=(self.angles,))
 
     def work(self):
         self.parse_task.start()
         self.plot_task.start()
-        self.process_read_sim()
+        self.process_read()
 
     def process_read_sim(self):
         data = [0x5A, 0xA5, 3,
@@ -42,7 +43,7 @@ class Parser:
             sleep(0.01)
 
     def process_read(self):
-        with serial.Serial('/dev/ttyUSB0', 115200) as ser:
+        with serial.Serial(self.port, self.baudrate) as ser:
             while True:
                 data = ser.read(29)
                 for item in data:
@@ -88,6 +89,7 @@ class Parser:
                 if buf.get() == 0x5A:
                     if buf.get() == 0xA5:
                         count = buf.get_nowait()
+                        dummy = buf.get_nowait()
 
                         for channel in range(count):
                             for k in range(4):
@@ -105,6 +107,25 @@ class Parser:
             sleep(0.01)
 
 if __name__ == "__main__":
-    dev = Parser()
+
+    ser = None
+    baud = 0
+
+    if len(sys.argv) != 3:
+        sys.exit("Wrong arguments number")
+
+    if 'dev' in sys.argv[1]:
+        port = sys.argv[1]
+    else:
+        sys.exit("Invalid port name")
+
+    try:
+        baud = int(sys.argv[2])
+    except:
+        sys.exit("Invalid baudrate format, should be integer")
+
+    print("Port {} baud {}".format(port, baud))
+
+    dev = Parser(ser, baud)
     dev.work()
 
