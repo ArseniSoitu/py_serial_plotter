@@ -13,9 +13,6 @@ class Parser:
     def __init__(self):
         self.data_manager = mp.Manager()
         self.buf = mp.Queue()
-        self.data_buf = []
-        self.is_finished = False
-        self.is_plot_finished = False
         self.angles = self.data_manager.dict()
         self.angles[0] = []
         self.angles[1] = []
@@ -47,7 +44,7 @@ class Parser:
     def process_read(self):
         with serial.Serial('/dev/ttyUSB0', 115200) as ser:
             while True:
-                data = ser.read(28)
+                data = ser.read(29)
                 for item in data:
                     self.buf.put(item)
                 sleep(0.01)
@@ -79,8 +76,14 @@ class Parser:
             plt.pause(0.05)
         
     def process_parse(self, buf, angles_shared):
+        local_buf_lst = []
+        local_buf_bytes = None
+
         while True:
             try:
+                if buf.qsize() < 29:
+                    pass
+                
                 raw_buf = []
                 if buf.get() == 0x5A:
                     if buf.get() == 0xA5:
