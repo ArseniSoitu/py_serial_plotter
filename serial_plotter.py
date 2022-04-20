@@ -32,12 +32,17 @@ class Parser:
         self.process_read_sim()
 
     def process_read_sim(self):
-        data = [0x5A, 0xA5, 0x05, 0x00, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00]
+        data = [0x5A, 0xA5, 3,
+                0x05, 0x00, 0x00, 0x00, 
+                0x0A, 0x00, 0x00, 0x00, 
+                0x14, 0x00, 0x00, 0x00, 
+                0x00, 0x00]
+
         data_bytes = bytes(data)
         while True:
             for item in data_bytes:
                 self.buf.put(item)
-            sleep(0.1)
+            sleep(0.01)
 
     def process_read(self):
         with serial.Serial('/dev/ttyUSB0', 115200) as ser:
@@ -45,25 +50,35 @@ class Parser:
                 data = ser.read(28)
                 for item in data:
                     self.buf.put(item)
-                sleep(0.1)
+                sleep(0.01)
 
     def process_plot(self, angles):
-        count = 0
-        x = []
+        fig, axs = plt.subplots(2, 3)
+        ax = axs.flatten()
         
         while True:
-            plt.cla()
-            plt.xlim(left = max(0, len(angles['roll']) - 50), right = len(angles['roll']) + 1)
-            plt.plot(list(range(max(0, len(angles['roll']) - 50), len(angles['roll']) - 1)), angles['roll'][max(0, len(angles['roll']) - 50):-1])
-            plt.grid(visible=True, axis='both', which='both', color='r', linestyle='-', linewidth=0.5)
+            channel = 0
 
-            count +=1
+            for subplt in ax:
+                if len(angles[channel]) == 0:
+                    pass
+                data = angles[channel]
+                subplt.cla()
+                subplt.set_title(channel)
+                subplt.axis(xmin=max(0, len(angles[channel]) - 50), xmax = len(data) + 1)
+                x_min = max(0, len(data) - 50)
+                x_max = len(data)
+                x_values = list(range(x_min, x_max))
+                subplt.plot(x_values, data[max(0, len(data) - 50) : ])
+                subplt.grid(visible=True, axis='both', which='both', 
+                        color='black', linestyle='-', linewidth=0.5)
+                channel += 1
+
+            channel %= len(ax)
+
             plt.pause(0.05)
         
     def process_parse(self, buf, angles_shared):
-        rolls = angles_shared['roll']
-        pitchs = angles_shared['pitch']
-        yaws = angles_shared['yaw']
         while True:
             try:
                 raw_buf = []
@@ -84,7 +99,7 @@ class Parser:
 
             except queue.Empty:
                 pass
-            sleep(0.1)
+            sleep(0.01)
 
 if __name__ == "__main__":
     dev = Parser()
