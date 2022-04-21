@@ -44,6 +44,7 @@ class Parser:
 
     def process_read(self):
         with serial.Serial(self.port, self.baudrate) as ser:
+            ser.reset_input_buffer()
             while True:
                 data = ser.read(29)
                 for item in data:
